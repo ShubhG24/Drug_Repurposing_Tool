@@ -28,9 +28,7 @@ def configure_entrez(email):
 
 @st.cache_resource
 def configure_gemini():
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        api_key = st.session_state.get('api_key', '')
+    api_key = st.session_state.get('api_key', '')
     if api_key:
         genai.configure(api_key=api_key)
         return genai.GenerativeModel('gemini-2.0-flash')
@@ -269,10 +267,9 @@ def main():
         st.header("Settings")
         user_email = st.text_input("Email for PubMed API", value="your_email@example.com")
         configure_entrez(user_email)
-        api_key = st.text_input("Google Gemini API Key", type="password", value=os.getenv("GOOGLE_API_KEY", ""))
+        api_key = st.text_input("Google Gemini API Key", type="password")
         if api_key:
             st.session_state['api_key'] = api_key
-            genai.configure(api_key=api_key)
 
     # with st.sidebar.expander("📋 Can't find your disease?"):
     #     st.markdown("### Look here for the closest match")
