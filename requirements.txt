@@ -1,24 +1,6 @@
-# Core UI + layout
-streamlit==1.33.0
-
-# PubMed + biomedical parsing
-biopython==1.83
-
-# For environment variables
-python-dotenv==1.0.1
-
-# For LLM interaction with Gemini
-google-generativeai==0.3.2
-
-# Data handling
-pandas==2.2.2
-numpy==1.26.4
-
-# Optional but helpful (e.g., fuzzy string matching)
-difflib  # standard lib (no need to install separately)
-
-# Requests and utilities
-requests==2.31.0
-
-# For markdown rendering in Streamlit (custom HTML links)
-markdown-it-py==3.0.0
+streamlit
+requests
+biopython
+pandas
+python-dotenv
+google-generativeai
