@@ -37,15 +37,6 @@ def configure_gemini():
 
 @st.cache_data
 def load_kg():
-    file_id = "1tQs8sEb4FPicicNBpVO1MO06J84tmf_w"  # 🔁 Replace with your actual file ID
-    url = f"https://drive.google.com/uc?id={file_id}"
-    output = "kg.csv"
-
-    # Download only if not already present
-    if not os.path.exists(output):
-        gdown.download(url, output, quiet=False)
-
-    
     kg_df = pd.read_csv("kg.csv", low_memory=False)
     kg_df['x_type'] = kg_df['x_type'].str.lower()
     kg_df['y_type'] = kg_df['y_type'].str.lower()
