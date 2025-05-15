@@ -4,3 +4,4 @@ biopython
 pandas
 python-dotenv
 google-generativeai
+gdown
