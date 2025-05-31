@@ -11,7 +11,6 @@ import re
 import pandas as pd
 import difflib
 from collections import defaultdict
-import gdown
 
 # Page configuration
 st.set_page_config(
@@ -36,13 +35,56 @@ def configure_gemini():
     return None
 
 @st.cache_data
+def download_kg_file():
+    """Download kg.csv from external storage if not present locally"""
+    if os.path.exists("kg.csv"):
+        return "kg.csv"
+    
+    # Replace this URL with your actual file URL (Google Drive, Dropbox, etc.)
+    # For Google Drive: use a direct download link    
+    KG_FILE_URL = "https://drive.google.com/uc?export=download&id=1tQs8sEb4FPicicNBpVO1MO06J84tmf_w"
+    try:
+        with st.spinner("Downloading knowledge graph data (this may take a few minutes)..."):
+            response = requests.get(KG_FILE_URL, stream=True)
+            response.raise_for_status()
+            
+            total_size = int(response.headers.get('content-length', 0))
+            progress_bar = st.progress(0)
+            downloaded = 0
+            
+            with open("kg.csv", "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size > 0:
+                            progress_bar.progress(downloaded / total_size)
+            
+            progress_bar.empty()
+            st.success("Knowledge graph data downloaded successfully!")
+            return "kg.csv"
+    except Exception as e:
+        st.error(f"Failed to download knowledge graph data: {e}")
+        return None
+
+@st.cache_data
 def load_kg():
-    kg_df = pd.read_csv("kg.csv", low_memory=False)
-    kg_df['x_type'] = kg_df['x_type'].str.lower()
-    kg_df['y_type'] = kg_df['y_type'].str.lower()
-    kg_df['relation'] = kg_df['relation'].str.lower()
-    kg_df['display_relation'] = kg_df['display_relation'].str.lower()
-    return kg_df
+    # Try to download the file if it doesn't exist
+    kg_file_path = download_kg_file()
+    if kg_file_path is None:
+        st.error("Could not load knowledge graph data. KG analysis will be unavailable.")
+        return None
+    
+    try:
+        kg_df = pd.read_csv(kg_file_path, low_memory=False)
+        kg_df['x_type'] = kg_df['x_type'].str.lower()
+        kg_df['y_type'] = kg_df['y_type'].str.lower()
+        kg_df['relation'] = kg_df['relation'].str.lower()
+        kg_df['display_relation'] = kg_df['display_relation'].str.lower()
+        return kg_df
+    except Exception as e:
+        st.error(f"Error loading knowledge graph data: {e}")
+        return None
 
 # Fuzzy match helper for KG
 def get_closest_disease_name_kg(disease_name, kg_df, min_similarity=0.8):
@@ -340,6 +382,10 @@ def main():
 
         elif analysis_mode == "KG Only":
             kg_df = load_kg()
+            if kg_df is None:
+                st.error("Knowledge Graph data is not available. Please try the 'LLM Only' mode instead.")
+                return
+                
             matched_primary_disease = get_closest_disease_name_kg(primary_disease, kg_df)
             matched_comorbidity = get_closest_disease_name_kg(comorbidity, kg_df)
 
@@ -390,6 +436,20 @@ def main():
         elif analysis_mode == "LLM + KG":
             st.info("LLM + KG integration will be implemented here.")
             kg_df = load_kg()
+            if kg_df is None:
+                st.error("Knowledge Graph data is not available. Falling back to 'LLM Only' mode.")
+                # Fall back to LLM only mode
+                query = build_pubmed_query(primary_disease, comorbidity)
+                abstracts = fetch_pubmed_abstracts(query, max_results)
+                if not abstracts:
+                    st.warning("No abstracts found for the diseases.")
+                    return
+                results = extract_relationships(abstracts, primary_disease, comorbidity)
+                if results:
+                    st.header(f"Analysis Results (LLM Only - KG Unavailable): {primary_disease} + {comorbidity}")
+                    visualize_drug_rankings(results, approved_drug_names)
+                return
+                
             matched_primary_disease = get_closest_disease_name_kg(primary_disease, kg_df)
             matched_comorbidity = get_closest_disease_name_kg(comorbidity, kg_df)
 
